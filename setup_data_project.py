@@ -3,23 +3,28 @@ import sys
 import subprocess
 from pathlib import Path
 
-# === CONFIG: Your preferred parent project folder ===
-DEFAULT_PARENT_DIR = r"C:\Users\gabri\Documents\Project\Data analytics"
-
-# === Argument check ===
-if len(sys.argv) != 2:
-    print("❌ Usage: python setup_data_project.py <github_repo_url>")
+# === Usage Check ===
+if len(sys.argv) < 2 or len(sys.argv) > 3:
+    print("❌ Usage: python setup_data_project.py <github_repo_url> [optional: target_directory]")
     sys.exit(1)
 
 github_url = sys.argv[1]
 project_name = github_url.rstrip('/').split('/')[-1].replace('.git', '')
 
-# === Navigate to your central Data Projects folder ===
-print(f"📂 Switching to parent folder: {DEFAULT_PARENT_DIR}")
-os.chdir(DEFAULT_PARENT_DIR)
+# === Determine Target Directory ===
+if len(sys.argv) == 3:
+    target_dir = os.path.abspath(sys.argv[2])
+else:
+    # Use the directory where this script is located
+    target_dir = os.path.dirname(os.path.abspath(__file__))
+
+# === Navigate to the parent folder ===
+print(f"📂 Switching to parent folder: {target_dir}")
+os.makedirs(target_dir, exist_ok=True)
+os.chdir(target_dir)
 
 # === Step 1: Clone GitHub repo ===
-print(f"📥 Cloning {github_url} into {DEFAULT_PARENT_DIR}")
+print(f"📥 Cloning {github_url} into {target_dir}")
 subprocess.run(["git", "clone", github_url])
 
 # === Step 2: Change into the project folder ===
@@ -39,9 +44,11 @@ subprocess.run([sys.executable, "-m", "venv", "venv"])
 
 # === Step 5: Install dependencies ===
 print("📦 Installing standard Python packages...")
-subprocess.run(["venv\\Scripts\\pip", "install", "--upgrade", "pip"])
-subprocess.run(["venv\\Scripts\\pip", "install", "pandas", "numpy", "matplotlib", "seaborn", "scikit-learn", "jupyter"])
-subprocess.run(["venv\\Scripts\\pip", "freeze"], stdout=open("requirements.txt", "w"))
+pip_exe = os.path.join("venv", "Scripts", "pip")
+subprocess.run([pip_exe, "install", "--upgrade", "pip"])
+subprocess.run([pip_exe, "install", "pandas", "numpy", "matplotlib", "seaborn", "scikit-learn", "jupyter"])
+with open("requirements.txt", "w") as f:
+    subprocess.run([pip_exe, "freeze"], stdout=f)
 
 # === Step 6: Commit to Git ===
 print("🗂 Committing initial project structure...")
@@ -50,8 +57,8 @@ subprocess.run(["git", "commit", "-m", "Initial project setup"])
 subprocess.run(["git", "push", "origin", "main"])
 
 # === Done ===
-print(f"\n✅ Project '{project_name}' created at {DEFAULT_PARENT_DIR}\\{project_name}")
+print(f"\n✅ Project '{project_name}' created at {os.path.join(target_dir, project_name)}")
 print("💡 To get started:")
-print(f"   cd \"{DEFAULT_PARENT_DIR}\\{project_name}\"")
+print(f"   cd \"{os.path.join(target_dir, project_name)}\"")
 print("   venv\\Scripts\\activate")
 print("   jupyter notebook")
